@@ -1,0 +1,252 @@
+\documentclass[11pt, a4paper]{article}
+
+% ── Packages ──
+\usepackage[margin=2cm, top=2.1cm, bottom=2.1cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{parskip}
+\usepackage{caption}
+\usepackage{float}
+
+% ── Spacing ──
+\titlespacing*{\section}{0pt}{11pt}{5pt}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
+\titleformat{\subsection}{\normalfont\bfseries}{\thesubsection}{0.5em}{}
+\setlist{nosep, leftmargin=1.4em, topsep=3pt}
+\setlength{\parskip}{4pt}
+\captionsetup{font=small, labelfont=bf, skip=2pt}
+
+% ── Header/Footer ──
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\footnotesize Citi Bike Network \& Spatial Visualization Report}
+\lhead{\footnotesize Network and Spatial Data -- Assignment}
+\cfoot{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\begin{document}
+
+% ════════════════════════════════════════════════════════════════
+% TITLE PAGE (Page 1)
+% ════════════════════════════════════════════════════════════════
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+{\Huge\bfseries Visualization for Network and Spatial Data\\[0.5cm]}
+{\Large Analyzing New York Citi Bike Trip Histories\\(2015--2017)\\[1.8cm]}
+{\large Visualization for Network and Spatial Data -- Assignment\\[2.5cm]}
+
+\begin{tabular}{ll}
+\toprule
+\textbf{Group Members} & \textbf{Student ID} \\
+\midrule
+VINUSHAANTH S.   & 220668B \\
+NAVATHARSHINI B. & 220416D \\
+SHAAMMA M. S.    & 220602U \\
+\bottomrule
+\end{tabular}
+
+\vfill
+{\large \today}
+\end{titlepage}
+
+% ════════════════════════════════════════════════════════════════
+% PAGE 2 — Introduction + Visualizations (a)–(d)
+% ════════════════════════════════════════════════════════════════
+\section{Introduction}
+This report analyses the New York Citi Bike trip-history dataset (Oct 2015--Sep 2017), comprising \textbf{735,502 trip records} across 17 columns. Twelve \textbf{network} and \textbf{spatial} visualizations answer analytical questions about how riders move between stations and across the geographic area served by the system. For each visualization, Task~2 documents: \textbf{(a)}~data types depicted, \textbf{(b)}~marks \& channels, \textbf{(c)}~best practices applied, and \textbf{(d)}~justification of the design choice.
+
+\textbf{Dataset:} Trip Duration (s), Start/Stop Time, Start/End Station (ID, Name, \emph{Latitude, Longitude}), Bike ID, User Type (Subscriber/Customer), Birth Year, Gender (0=Unknown, 1=Male, 2=Female).
+
+\textbf{Preprocessing:} Datetime parsing of Start/Stop Time; derived columns: Hour, DayOfWeek, IsWeekend, Trip\_Duration\_min, Gender\_Label. \textbf{Geographic grouping:} the dataset is in fact a Jersey City--area bike share, so each trip was assigned to one of six \textbf{neighbourhoods} (\emph{Downtown JC, Exchange Place, Newport / Hamilton, Journal Square, The Heights, Liberty / South}) using lat/lon bounding-box rules derived from the actual station coordinates. \textbf{Trip distance} was computed via the Haversine formula, used to detect near-round-trip behaviour. \textbf{Time-of-day periods}: Morning Peak (06--09), Midday (10--15), Evening Peak (16--19), Off-Peak/Night (20--05). Tools: Python~3.12, Pandas, NumPy, Matplotlib, Seaborn, NetworkX, Squarify.
+
+\section{Visualizations and Analysis}
+
+\subsection{(a) Most-travelled paths between stations and overall interconnections}
+\textbf{Chart:} Geographic node--link diagram (NetworkX) showing the top 120 directed station pairs.
+
+\textbf{(a) Data types:} Station Name (nominal nodes), Station Pair (nominal directed edges), Trip Volume per Pair (quantitative), Latitude/Longitude (quantitative continuous, used as node coordinates).
+
+\textbf{(b) Marks/Channels:} Filled-circle node marks + curved directed-edge marks; channels = spatial position (lat/lon), node size (total adjacent trips), edge width (pair trip volume), edge curvature (separates A$\to$B from B$\to$A).
+
+\textbf{(c) Best practices:} Restricted to top 120 edges to avoid hairball clutter; nodes anchored at true geographic coordinates so the diagram doubles as a map; only the 12 highest-traffic hubs are labelled; curved edges prevent overlap of opposite-direction trips.
+
+\textbf{(d) Justification:} A geographic node--link layout is the canonical representation for a place-based flow network; it reveals a dense Jersey City core with Grove St PATH and Exchange Place as the dominant hubs and a peripheral spoke into Sip Ave / Journal Square.
+
+\subsection{(b) Inter-neighbourhood trip flows}
+\textbf{Chart:} Two side-by-side panels --- a log-scaled heatmap matrix and a chord-style flow diagram.
+
+\textbf{(a) Data types:} Origin Neighbourhood, Destination Neighbourhood (both nominal), Trip Count (quantitative discrete).
+
+\textbf{(b) Marks/Channels:} Heatmap = rectangular cell marks with colour-saturation channel; chord = node-circle marks (size = intra-neighbourhood trips) and curved arrow-edge marks (width = inter-neighbourhood flow, hue = origin).
+
+\textbf{(c) Best practices:} Two complementary views give exact counts (matrix) and overall shape (chord); log-scaled colour because intra-neighbourhood flow dwarfs inter-neighbourhood; edges below 0.5\,\% of max are dropped; self-loops encoded as node size rather than self-arrows.
+
+\textbf{(d) Justification:} A pure node--link map is too sparse for only six regions; matrix\,+\,chord pairing is the standard for origin--destination flows. It reveals dominant intra-Downtown\,JC traffic, strong bidirectional Downtown\,JC\,$\leftrightarrow$\,Exchange\,Place flow, and that The\,Heights and Liberty/South act mostly as origins/destinations rather than through-routes.
+
+\subsection{(c) Round-trip and near-round-trip patterns}
+\textbf{Chart:} Two horizontal bar panels --- top 15 pure round-trip stations (start = end) and top 15 near-round-trip pairs (different stations within 250\,m).
+
+\textbf{(a) Data types:} Station / Station-Pair (nominal), Round-trip count (quantitative discrete), Trip distance (quantitative continuous, used as 250\,m threshold).
+
+\textbf{(b) Marks/Channels:} Horizontal bar marks; channels = bar length (count), y-position (rank), colour hue (teal vs purple to distinguish the two panels).
+
+\textbf{(c) Best practices:} Two panels separate two conceptually different behaviours; numeric labels at bar ends; pair names truncated to 18 characters per side; bars sorted ascending so the longest sits on top.
+
+\textbf{(d) Justification:} Ranked horizontal bars are optimal for top-N nominal lists. Splitting prevents conflating leisure loops with cluster-redocking events. Park-adjacent stations (Liberty Light Rail, Lincoln Park) dominate pure round trips, while near-round-trip pairs cluster around the PATH stations.
+
+\subsection{(d) Bidirectional traffic between station pairs}
+\textbf{Chart:} Scatter plot of A$\to$B vs B$\to$A counts for the top 300 station pairs, with a 45\textdegree{} reference line.
+
+\textbf{(a) Data types:} Station Pair (nominal), Trips A$\to$B and B$\to$A (quantitative discrete), Symmetry index $\min/\max$ (quantitative continuous, 0--1).
+
+\textbf{(b) Marks/Channels:} Point marks + reference-line mark; channels = x-position (A$\to$B), y-position (B$\to$A), point area (total volume), point colour (symmetry, RdYlGn diverging).
+
+\textbf{(c) Best practices:} 45\textdegree{} reference makes equality visible at a glance; size and colour encode independent quantities; restricted to top 300 pairs; only the most symmetric high-volume pairs annotated; equal x/y limits and square aspect.
+
+\textbf{(d) Justification:} Scatter\,+\,diagonal is the canonical visualization where equality of two paired measures is the question. The chart shows that most high-volume corridors lie tightly along the diagonal (highly bidirectional commuter routes), with only a handful of one-way feeders such as the ferry-terminal links.
+
+% ════════════════════════════════════════════════════════════════
+% PAGE 3 — Visualizations (e)–(h)
+% ════════════════════════════════════════════════════════════════
+
+\subsection{(e) Trip distribution across neighbourhoods and stations within neighbourhoods}
+\textbf{Chart:} Two-level treemap (Squarify): neighbourhood as parent group, top 6 stations within each neighbourhood as children.
+
+\textbf{(a) Data types:} Neighbourhood (nominal, top level), Station Name (nominal, child level), Trip Count (quantitative discrete).
+
+\textbf{(b) Marks/Channels:} Nested rectangle marks; channels = tile area (trip count), tile colour hue (neighbourhood), white border (separator), text label inside tile.
+
+\textbf{(c) Best practices:} Limit to top 6 stations per neighbourhood for readability; bold white labels for contrast on any neighbourhood colour; consistent neighbourhood palette reused across the report; legend included.
+
+\textbf{(d) Justification:} A treemap is purpose-built for two-level part-to-whole; area is the most accurate non-position channel for ratio judgements at small differences. The chart instantly shows Downtown\,JC as dominant and reveals that within it Grove\,St\,PATH and a few PATH-adjacent stations carry the bulk of trips.
+
+\subsection{(f) Trip volume by neighbourhood, user type, and gender}
+\textbf{Chart:} Stacked grouped vertical bar chart --- two bars per neighbourhood (Subscriber, Customer with hatch), each stacked by gender.
+
+\textbf{(a) Data types:} Neighbourhood, User Type, Gender (all nominal); Trip Count (quantitative discrete).
+
+\textbf{(b) Marks/Channels:} Stacked bar marks in groups of two; channels = bar height (count), stack-segment colour (gender), texture/hatch (user type), x-position (neighbourhood).
+
+\textbf{(c) Best practices:} Three categorical dimensions encoded with three distinct visual channels (position, hatch, colour) so no information is lost; neighbourhoods sorted by total trips descending; thousands-separator on y-axis; composite legend covers both colour and hatch schemes.
+
+\textbf{(d) Justification:} Stacked\,+\,grouped bars are the most compact, least-cluttered alternative to a Sankey for three categorical breakdowns and one quantity. Downtown\,JC subscribers form the dominant cohort, and Male representation hovers near 70\,\% in every neighbourhood.
+
+\subsection{(g) Hourly usage by user type and gender}
+\textbf{Chart:} Faceted line chart --- two panels (Subscriber, Customer), one line per gender, x = hour of day.
+
+\textbf{(a) Data types:} Hour (ordinal, 0--23), User Type (nominal), Gender (nominal), Trip Count (quantitative).
+
+\textbf{(b) Marks/Channels:} Point\,+\,line marks with faint area fill; channels = x-position (hour), y-position (count), colour hue (gender), facet (user type), area fill (visual emphasis).
+
+\textbf{(c) Best practices:} Faceting by user type isolates the very different commuter vs leisure profiles; \emph{shared y-axis} for honest cross-panel magnitude comparison; light alpha fill aids tracking; consistent gender colours; hour ticks every 2\,h.
+
+\textbf{(d) Justification:} Faceted lines are the strongest design when one ordinal axis interacts with two categorical breakdowns. The Subscriber panel shows two sharp rush-hour peaks (8\,AM, 5--6\,PM) while the Customer panel shows a single broad midday peak --- instantly revealing commuter vs tourist behaviour.
+
+\subsection{(h) Neighbourhood comparison: total trips vs average trip duration}
+\textbf{Chart:} Twin-axis grouped bar chart --- one blue bar (total trips, left axis) and one red bar (avg duration, right axis) per neighbourhood.
+
+\textbf{(a) Data types:} Neighbourhood (nominal); Total Trips (quantitative discrete) and Avg Trip Duration (quantitative continuous, minutes).
+
+\textbf{(b) Marks/Channels:} Two side-by-side rectangular bar marks per neighbourhood; channels = bar height (one per metric), colour hue (blue = volume, red = avg duration), dual y-axes with matching colours.
+
+\textbf{(c) Best practices:} Twin y-axes are colour-matched to their bars; 99\textsuperscript{th}-percentile cap on durations prevents distortion; numeric value labels on every bar; \emph{Other} excluded; sorted by trip volume descending.
+
+\textbf{(d) Justification:} A dual-axis grouped bar is the most space-efficient option for comparing two metrics with different units across a small nominal axis. Downtown\,JC dominates volume but does \emph{not} carry the longest average trip --- Liberty\,/\,South and The\,Heights show longer average durations, consistent with leisure rides near Liberty State Park and the longer commutes from the residential hill area.
+
+% ════════════════════════════════════════════════════════════════
+% PAGE 4 — Visualizations (i)–(l)
+% ════════════════════════════════════════════════════════════════
+
+\subsection{(i) Geographic locations of busiest start and end stations}
+\textbf{Chart:} Two side-by-side proportional-symbol maps --- busiest start stations (blue) and busiest end stations (red).
+
+\textbf{(a) Data types:} Latitude, Longitude (quantitative continuous geographic), Station Name (nominal), Trip Count (quantitative discrete).
+
+\textbf{(b) Marks/Channels:} Point (proportional-symbol) marks; channels = spatial position (lat/lon), point area (count), colour saturation (sequential, reinforces count), text labels for the top 10 stations per map.
+
+\textbf{(c) Best practices:} Two side-by-side maps separate start vs end behaviour; equal aspect so geographic distances are not distorted; \emph{redundant} size + colour encoding aids accessibility; sequential colourmap because trip count is unidirectional.
+
+\textbf{(d) Justification:} A proportional-symbol map is the standard alternative to a choropleth when geographic units are points (stations) rather than polygons. Comparing the two panels confirms that the busiest start and end stations are essentially the same set --- the system is broadly bidirectional, with Grove\,St\,PATH and Exchange\,Place dominating both sides.
+
+\subsection{(j) Dorling cartogram --- neighbourhoods scaled by total bike usage}
+\textbf{Chart:} Two side-by-side panels --- a reference map with equal-area markers and a Dorling cartogram with circle area $\propto$ trip volume.
+
+\textbf{(a) Data types:} Neighbourhood (nominal), Centroid Latitude/Longitude (quantitative continuous), Total Trips per Neighbourhood (quantitative discrete).
+
+\textbf{(b) Marks/Channels:} Filled-circle marks, one per neighbourhood; channels = spatial position (centroid lat/lon), circle area (trip volume --- the Dorling encoding), colour hue (neighbourhood identity), text label inside the circle.
+
+\textbf{(c) Best practices:} Reference map shown alongside so the cartogram distortion is interpretable; \emph{area} (not radius) maps to volume for perceptually correct ratio reading; equal aspect ratio; each circle labels both name and percentage; consistent neighbourhood palette.
+
+\textbf{(d) Justification:} A Dorling cartogram is the simplest non-contiguous cartogram and is appropriate when polygon geometry is unavailable. It deliberately distorts size to communicate \emph{thematic dominance}: the Downtown\,JC circle visually swamps the others, instantly conveying that this bikeshare is centred on the Downtown / PATH corridor, with Exchange\,Place and Newport\,/\,Hamilton as secondary hubs.
+
+\subsection{(k) Schematic tile-grid map of neighbourhood activity}
+\textbf{Chart:} Hexagonal tile-grid map --- one equally-sized hex per neighbourhood, coloured by share of total trips.
+
+\textbf{(a) Data types:} Neighbourhood (nominal), Trip Share (quantitative continuous, 0--1).
+
+\textbf{(b) Marks/Channels:} Regular hexagon tile marks; channels = tile colour saturation (sequential, trip share), tile relative position (preserves rough geographic adjacency), text annotation (name + share + count).
+
+\textbf{(c) Best practices:} Hexagons sized identically so the eye never compares area incorrectly; tiles arranged so adjacency roughly matches real geography; sequential colourmap (\texttt{YlOrRd}) appropriate for one unidirectional quantity; both percentage and raw count inside every tile; explicit colourbar legend.
+
+\textbf{(d) Justification:} A schematic tile-grid map sacrifices geographic accuracy for \emph{comparability}: every neighbourhood gets equal visual prominence so small but interesting regions (Liberty\,/\,South, The\,Heights) cannot be overwhelmed by a large neighbour. It complements (j): together they offer a full \emph{distort-area} vs \emph{equal-area} pair encoding the same variable.
+
+\subsection{(l) Spatial distribution of origins and destinations over time}
+\textbf{Chart:} A 2$\times$4 grid of small-multiple hexbin density maps --- rows = Origins (blue), Destinations (red); columns = Morning Peak, Midday, Evening Peak, Off-Peak/Night.
+
+\textbf{(a) Data types:} Latitude, Longitude (quantitative continuous geographic), Time Period (ordinal), Origin/Destination role (nominal), Trip Count per Hex (quantitative discrete, log-scaled for display).
+
+\textbf{(b) Marks/Channels:} Hexagonal bin (density-grid) marks; channels = spatial position (lat/lon), colour saturation (log count), small-multiple position (time period $\times$ role), colour hue (blue = origins, red = destinations).
+
+\textbf{(c) Best practices:} Identical lat/lon extents across all 8 panels for comparability; logarithmic colour bins so a few super-busy hexes do not flatten the rest; sub-sampling to 60\,000 trips per period keeps rendering fast; two distinct sequential colourmaps reinforce the origin/destination role.
+
+\textbf{(d) Justification:} Hexbin density maps are the recommended technique when many thousands of point coordinates would overplot. Faceting by time period reveals a clear \emph{diffusion--concentration} pattern: morning-peak origins cluster around residential blocks while destinations spread toward PATH hubs, and the pattern reverses in the evening peak. Off-peak and night activity is thin and concentrated near nightlife districts.
+
+% ════════════════════════════════════════════════════════════════
+% PAGE 5 — Design Rationale + Key Findings
+% ════════════════════════════════════════════════════════════════
+
+\section{Design Rationale and Cross-Chart Coherence}
+
+The twelve visualizations were not designed in isolation: they were planned as a coherent \emph{visual narrative} that progresses from the most abstract network view to the most concrete geographic view, with each chart deliberately answering a different facet of the same underlying question --- \emph{how do riders move through this system?}
+
+\textbf{Chart-type selection.} Every chart type was selected by matching the data abstraction to the recommended channels in Munzner's effectiveness ranking. For \emph{quantitative comparisons} on a small nominal axis (h) we use position-on-aligned-scale (the most accurate channel); for \emph{ratio judgements at small differences} (e, j) we use area; for \emph{geographic} judgements (a, i, l) we preserve true latitude/longitude positions; and only when the analytical question is \emph{schematic comparability} (k) do we deliberately discard geography in favour of equal-area tiles.
+
+\textbf{Consistent visual encodings.} A fixed colour scheme is reused across every chart in which the variable appears: blue/red/grey for gender, green/orange for user type, and a six-colour neighbourhood palette that is identical in (b), (e), (f), (h) and (j). This consistency means that the same colour always denotes the same category, allowing the reader to integrate findings across charts without re-orienting to a new legend each time.
+
+\textbf{Complementary chart pairs.} Several chart pairs were designed to be read together and reveal something that neither chart shows alone: (j) and (k) form an \emph{area-distorted vs equal-area} pair so the reader sees both raw dominance and per-unit comparability; (a) and (b) zoom from individual station-pair edges to aggregated neighbourhood-pair flows; (i) decomposes (a)'s nodes into start vs end roles; and (l) extends (i) along the temporal dimension. Together these pairings form an analytical hierarchy from edge-level detail up to system-level pattern.
+
+\textbf{Clutter-management strategies.} Network and spatial datasets at this scale (\,$735{,}502$ trips, several hundred stations) suffer badly from over-plotting. We applied four mitigations consistently: (i)~\emph{filtering} the visible data (top-$N$ edges in (a), top-300 pairs in (d), top-6 stations per neighbourhood in (e)); (ii)~\emph{aggregation} via hex-binning in (l) and category-grouping in (b)/(k); (iii)~\emph{transparency} in (g) and (i); and (iv)~\emph{logarithmic encodings} for the heatmap (b) and the hexbin maps (l) so that the long-tailed count distributions do not flatten into a single saturated colour.
+
+\section{Key Findings}
+
+Across the 12 network and spatial visualizations, several major insights emerge about the structure and behaviour of this bike-sharing system:
+
+\begin{itemize}
+\item \textbf{Network structure:} The station network is a clear \emph{hub-and-spoke} graph centred on \textbf{Grove\,St\,PATH} and \textbf{Exchange\,Place}, with secondary hubs at \textbf{Newport\,PATH}, \textbf{Hamilton\,Park} and \textbf{Sip\,Ave}. The top 120 directed edges account for the bulk of the 735\,K trips, and almost all of these high-volume corridors lie tightly along the 45\textdegree{} symmetry diagonal --- meaning trips are predominantly bidirectional commuter routes rather than one-way flows.
+
+\item \textbf{Spatial concentration:} Despite covering an area of roughly 7\,km\,$\times$\,6\,km, ridership is heavily concentrated in \textbf{Downtown\,JC}, which accounts for $\approx$\,42\,\% of all starts. The Dorling cartogram and schematic tile map both confirm Downtown\,JC's dominance, while the schematic view also makes the proportionally smaller but non-trivial activity in \textbf{The\,Heights} and \textbf{Liberty\,/\,South} clearly visible.
+
+\item \textbf{Inter-neighbourhood flow:} Most trips stay within a single neighbourhood. The largest cross-neighbourhood corridor is the \textbf{Downtown\,JC\,$\leftrightarrow$\,Exchange\,Place} flow (the two PATH-station clusters), followed by \textbf{Journal\,Square\,$\leftrightarrow$\,The\,Heights}. Peripheral neighbourhoods act mostly as origins/destinations rather than through-routes.
+
+\item \textbf{Round-trip behaviour:} Pure round trips ($\sim$\,1.7\,\% of all trips) cluster strongly at park- and waterfront-adjacent stations (Liberty\,Light\,Rail, Lincoln\,Park, Marin\,Light\,Rail), confirming a leisure-riding signature. Near-round-trip pairs (different stations within 250\,m, $\sim$\,3.4\,\% of trips) instead cluster at PATH stations and represent cluster-redocking events.
+
+\item \textbf{Temporal--spatial coupling:} The faceted time-period maps show a pronounced morning-evening reversal: morning origins are dispersed across residential blocks and concentrate \emph{into} PATH hubs as destinations, while the evening peak inverts this pattern. Off-peak/night activity is thin and centred on a small set of stations near downtown nightlife.
+
+\item \textbf{Demographic--geographic coupling:} Across every neighbourhood, Subscribers outnumber Customers by roughly 9\,:\,1 and Male riders dominate at $\approx$\,70\,\%, but the ratios are most extreme in Downtown\,JC and most balanced in Liberty\,/\,South --- the latter consistent with its higher leisure share.
+\end{itemize}
+
+\section{Conclusion}
+
+Each of the 12 charts was deliberately matched to the network or spatial nature of the question and to the data types involved. Network questions (a, b, d) used node--link, matrix and scatter-with-diagonal designs; ranked composition questions (c, e) used horizontal bar and treemap layouts; multi-factor categorical breakdowns (f, g, h) used stacked-grouped bars, faceted lines and twin-axis bars respectively; and the spatial questions (i, j, k, l) used proportional-symbol maps, a Dorling cartogram, a schematic tile-grid map and small-multiple hexbin density maps to give complementary geographic perspectives.
+
+The consistent use of colour palettes (blue/red for gender, green/orange for user type, a fixed six-colour neighbourhood scheme) and the deliberate pairing of \emph{area-distorted} (j) with \emph{equal-area} (k) views allow the reader to build a mental model quickly and to read each chart against its companions without re-orienting.
+
+Together, these visualizations show that the dataset describes a Jersey City--centred bike-share that is highly geographically clustered around the Downtown\,/\,PATH corridor, structurally a hub-and-spoke commuter network with strong bidirectional traffic, and temporally driven by twin AM/PM commuter peaks that reverse the spatial direction of the dominant flows.
+
+\end{document}
